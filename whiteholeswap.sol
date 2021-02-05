@@ -428,7 +428,9 @@ contract whiteholeswap is ERC20Mintable {
         doTransferIn(token0, msg.sender, token0_in);
         doTransferIn(token1, msg.sender, token1_in);
         uint256 kAfter = k(getToken0Balance(), getToken1Balance());
-        share = kAfter.sqrt().mul(_totalSupply).div(kBefore.sqrt()).mul(fee).div(BASE);
+
+        // ( sqrt(_k) * totalSupply / sqrt(k) - totalSupply ) * fee
+        share = kAfter.sqrt().mul(_totalSupply).div(kBefore.sqrt()).sub(_totalSupply).mul(fee).div(BASE);
         require(share >= share_min, "SLIPPAGE_DETECTED");
         _mint(msg.sender, share);
 

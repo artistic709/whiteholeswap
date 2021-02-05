@@ -249,8 +249,12 @@ contract whiteholeswap is ERC20Mintable {
         require(msg.sender == admin);
         require(_fee < 1e18 && _fee >= 0.99e18); //0 < fee <= 1%
         require(_protocolFee > 0); //protocolFee <= 50% fee
+        uint256 token0Reserve = getToken0Balance();
+        uint256 token1Reserve = getToken1Balance();
+        if(_totalSupply > 0) _mintFee(token0Reserve, token1Reserve);
         fee = _fee;
         protocolFee = _protocolFee;
+        kLast = k(token0Reserve, token1Reserve);
     }
 
     function setVault(address _vault) external {

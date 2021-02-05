@@ -22,6 +22,12 @@ library SafeMath {
         return c;
     }
 
+    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+        require(b <= a, errorMessage);
+        uint256 c = a - b;
+        return c;
+    }
+
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
         require(c >= a);
@@ -230,7 +236,7 @@ contract whiteholeswap is ERC20Mintable {
     |        Governmence & Params       |
     |__________________________________*/
 
-    uint256 public fee = 0.99985e18;
+    uint256 public fee = 0.99985e18; // 1 - swap fee (numerator, in 1e18 format)
     uint256 public protocolFee = 5;
     uint256 public constant A = 0.75e18;
     uint256 constant BASE = 1e18;
@@ -281,7 +287,7 @@ contract whiteholeswap is ERC20Mintable {
     }
 
     function f(uint256 _x, uint256 x, uint256 y) internal pure returns (uint256 _y) {
-        uint256 c = k(x, y).mul(BASE).div(A).sub(_x.mul(_x));
+        uint256 c = k(x, y).mul(BASE).div(A).sub(_x.mul(_x), "INSUFFICIENT_LIQUIDITY");
 
         uint256 cst = A.add(uint256(1e36).div(A));
         uint256 _b = _x.mul(cst).div(BASE);

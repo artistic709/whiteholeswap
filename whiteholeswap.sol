@@ -230,6 +230,7 @@ contract whiteholeswap is ERC20Mintable {
         name = "WhiteHoleSwap token0/token1";
         decimals = 18;
         admin = msg.sender;
+        vault = msg.sender;
     }
 
     /***********************************|

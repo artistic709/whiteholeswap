@@ -258,7 +258,7 @@ contract whiteholeswap is ERC20Mintable {
         require(_protocolFee > 0); //protocolFee <= 50% fee
         uint256 token0Reserve = getToken0Balance();
         uint256 token1Reserve = getToken1Balance();
-        if(_totalSupply > 0) _mintFee(token0Reserve, token1Reserve);
+        if(_totalSupply > 0) _mintFee(k(token0Reserve, token1Reserve));
         fee = _fee;
         protocolFee = _protocolFee;
         kLast = k(token0Reserve, token1Reserve);
@@ -316,11 +316,11 @@ contract whiteholeswap is ERC20Mintable {
     |        Exchange Functions         |
     |__________________________________*/
     
-    function _mintFee(uint256 _reserve0, uint256 _reserve1) private {
+    function _mintFee(uint256 _k) private {
         uint _kLast = kLast; // gas savings
 
         if (_kLast != 0) {
-            uint rootK = k(_reserve0, _reserve1).sqrt();
+            uint rootK = _k.sqrt();
             uint rootKLast = _kLast.sqrt();
             if (rootK > rootKLast) {
                 uint numerator = _totalSupply.mul(rootK.sub(rootKLast));
@@ -403,25 +403,22 @@ contract whiteholeswap is ERC20Mintable {
         if (_totalSupply > 0) {
             uint256 token0Reserve = getToken0Balance();
             uint256 token1Reserve = getToken1Balance();
-            _mintFee(token0Reserve, token1Reserve);
+            _mintFee(k(token0Reserve, token1Reserve));
             token0_in = share.mul(token0Reserve).div(_totalSupply);
             token1_in = share.mul(token1Reserve).div(_totalSupply);
             require(token0_in <= token0_max && token1_in <= token1_max, "SLIPPAGE_DETECTED");
-
             _mint(msg.sender, share);
-            doTransferIn(token0, msg.sender, token0_in);
-            doTransferIn(token1, msg.sender, token1_in);
+            kLast = k(token0Reserve.add(token0_in), token1Reserve.add(token1_in));
         }
         else {
             token0_in = share.div(2);
             token1_in = share.div(2);
-
             _mint(msg.sender, share);
-            doTransferIn(token0, msg.sender, token0_in);
-            doTransferIn(token1, msg.sender, token1_in);
+            kLast = k(token0_in, token1_in);
         }
 
-        kLast = k(getToken0Balance(), getToken1Balance());
+        doTransferIn(token0, msg.sender, token0_in);
+        doTransferIn(token1, msg.sender, token1_in);
         emit AddLiquidity(msg.sender, share, token0_in, token1_in);
     }
 
@@ -429,20 +426,18 @@ contract whiteholeswap is ERC20Mintable {
         require(_totalSupply > 0, "INSUFFICIENT_LIQUIDITY");
         uint256 token0Reserve = getToken0Balance();
         uint256 token1Reserve = getToken1Balance();
-        _mintFee(token0Reserve, token1Reserve);
         uint256 kBefore = k(token0Reserve, token1Reserve);
-
-        doTransferIn(token0, msg.sender, token0_in);
-        doTransferIn(token1, msg.sender, token1_in);
-        // charge fee
+        // charge fee for imbalanced deposit
         uint256 kAfter = k(token0Reserve.add(token0_in.mul(fee).div(BASE)), token1Reserve.add(token1_in.mul(fee).div(BASE)));
-
+        _mintFee(kBefore);
         // ( sqrt(_k) * totalSupply / sqrt(k) - totalSupply )
         share = kAfter.sqrt().mul(_totalSupply).div(kBefore.sqrt()).sub(_totalSupply);
         require(share >= share_min, "SLIPPAGE_DETECTED");
         _mint(msg.sender, share);
 
         kLast = kAfter;
+        doTransferIn(token0, msg.sender, token0_in);
+        doTransferIn(token1, msg.sender, token1_in);
         emit AddLiquidity(msg.sender, share, token0_in, token1_in);
     }
 
@@ -451,17 +446,17 @@ contract whiteholeswap is ERC20Mintable {
 
         uint256 token0Reserve = getToken0Balance();
         uint256 token1Reserve = getToken1Balance();
-        _mintFee(token0Reserve, token1Reserve);
+        _mintFee(k(token0Reserve, token1Reserve));
 
         token0_out = share.mul(token0Reserve).div(_totalSupply);
         token1_out = share.mul(token1Reserve).div(_totalSupply);
         require(token0_out >= token0_min && token1_out >= token1_min, "SLIPPAGE_DETECTED");
 
         _burn(msg.sender, share);
+
+        kLast = k(token0Reserve.sub(token0_out), token1Reserve.sub(token1_out));
         doTransferOut(token0, msg.sender, token0_out);
         doTransferOut(token1, msg.sender, token1_out);
-
-        kLast = k(getToken0Balance(), getToken1Balance());
         emit RemoveLiquidity(msg.sender, share, token0_out, token1_out);
     }
 

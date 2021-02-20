@@ -378,8 +378,8 @@ contract whiteholeswap is ERC20Mintable {
 
         input = getInExactOut(output, fromReserve, toReserve);
         require(input <= max_input, "SLIPPAGE_DETECTED");
-        doTransferIn(token1, msg.sender, input);
-        doTransferOut(token0, msg.sender, output);
+        doTransferIn(token0, msg.sender, input);
+        doTransferOut(token1, msg.sender, output);
 
         emit Purchases(msg.sender, address(token1), input, address(token0), output);
     }
